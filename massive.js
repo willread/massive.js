@@ -78,12 +78,13 @@ exports.Job = function($function, $callback, $finished, $options){
 	
 }
 
-exports.Job.prototype.queue = function($task, $id){
+exports.Job.prototype.queue = function($task, $param, $id){
 
 	var task = $task.toString(); // Serialize function
 	this._queue.push({
 		"id": $id,
 		"task": task,
+		"param": $param,
 		"startTime": 0
 	}); // Add to queue
 

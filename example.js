@@ -21,13 +21,13 @@ var j = new massive.Job(function(){
 	
 	for(ii = 0; ii < 1000; ii++){
 		
-		this.queue(function(){
+		this.queue(function(param){
 			/*for(ii = 0; ii < 10000000; ii++){
 				var result = ii;
 			}*/
 			var hash = hex_md5(Math.random() + "");
-			return hash;
-		}, ii);
+			return hash + ":" + param;
+		}, "test" + ii, ii);
 	
 	}
 	

@@ -53,7 +53,7 @@ Massive.prototype.connect = function($host, $port){
 				console.log("Task:");
 				console.log(task);
 				eval("code = " + task.task)
-				var result = code();
+				var result = code(task.param);
 				scope.socket.emit("finished", result, task.id);
 				scope.busy = false;
 			}

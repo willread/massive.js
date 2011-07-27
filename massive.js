@@ -1,52 +1,76 @@
-var util = require("util");
+// TODO: Give tasks to someone else if worker takes too long
+
 var io = require("socket.io");
-var express = require("express");
 
-var app = require('express').createServer();
-
-app.use("/", express.static(__dirname + '/'));
-
-app.get('/', function(req, res){
-
-	res.send(req.params);
-
-});
-
-app.listen(3000);
-
-var Job = function($function, $callback, $port){
+exports.Job = function($function, $callback, $finished, $options){
 
 	this._queue = [];
+	this._assigned = [];
 	this._function = $function;
 	this._callback = $callback;
-	this._results;
+	this._finished = $finished;
 	
-	this._function(); // Run supplied function, should be synchronous?
+	// Default options
+	this._options = {
+		port: 1234,
+		dependencies: []
+	};
 	
-	this._io = io.listen($port);
-	this._io.set("log level", 0);
+	// Override default options with those provided
+	if(typeof $options == "object"){
+		for(o in $options){
+			if(typeof this._options[o] != "undefined")
+				this._options[o] = $options[o];
+		}
+	}
+	
+	this._function(); // Run supplied function
+	
+	this._io = io.listen(this._options.port);
+	this._io.set("log level", -1);
 	
 	var scope = this;
 	
 	this._io.sockets.on("connection", function(socket){
 		
-		console.log("Client connected");
+		socket.emit("dependencies", scope._options.dependencies);
 		
 		// Client wants something to do!
 		
 		socket.on("ready", function(){
-			
-			console.log("Client ready");
-			if(scope._queue.length > 0)
-				socket.emit("task", scope._queue.pop());
+		
+			if(scope._queue.length > 0){
+				var task = scope._queue.pop();
+				task.startTime = new Date().getTime();
+				scope._assigned.push(task);
+				socket.emit("task", task);
+			}
 		
 		});
 		
-		socket.on("finished", function($results){
-		
-			scope._callback($results);
-			if(scope._queue.length > 0)
-				socket.emit("task", scope._queue.pop());
+		socket.on("finished", function($results, $id){
+			
+			// Remove from assigned tasks array
+			
+			var taskToRemove = -1;
+			for(a in scope._assigned){
+			
+				if(scope._assigned[a].id == $id)
+					taskToRemove = a;
+			
+			}
+			if(taskToRemove > -1)
+				scope._assigned.splice(taskToRemove, 1);
+			
+			// Send returned data to callback function
+			
+			scope._callback($results, $id);
+			
+			// Finish up if no tasks left
+			
+			if(scope._queue.length <= 0 && scope._assigned.length <= 0){
+				scope._finished();
+			}
 		
 		});
 	
@@ -54,35 +78,17 @@ var Job = function($function, $callback, $port){
 	
 }
 
-Job.prototype.queue = function($task){
+exports.Job.prototype.queue = function($task, $id){
 
 	var task = $task.toString(); // Serialize function
-	this._queue.push(task); // Add to queue
+	this._queue.push({
+		"id": $id,
+		"task": task,
+		"startTime": 0
+	}); // Add to queue
 
 }
 
-var j = new Job(function(){
+exports.Job.prototype.assign = function(){
 
-	for(ii = 0; ii < 999; ii++){
-		
-		var scope = this;
-		
-		setTimeout(function(){
-	
-			scope.queue(function(){
-				for(ii = 0; ii < 10000000; ii++){
-					var result = ii;
-				}
-				return Math.random();;
-			});
-			
-		}, 1);
-	
-	}
-
-}, function(data){
-	
-	console.log("Result: " + data);
-	console.log("Queue remaining: " + this._queue.length);
-
-}, 1234)
+}

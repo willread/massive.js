@@ -1,4 +1,5 @@
 // TODO: Give tasks to someone else if worker takes too long
+// TODO: Change private variable notation to something prettier
 
 var io = require("socket.io");
 
@@ -32,54 +33,38 @@ exports.Job = function($function, $callback, $finished, $options){
 	var scope = this;
 	
 	this._io.sockets.on("connection", function(socket){
-		
 		socket.emit("dependencies", scope._options.dependencies);
 		
 		// Client wants something to do!
-		
 		socket.on("ready", function(){
-		
 			if(scope._queue.length > 0){
 				var task = scope._queue.pop();
 				task.startTime = new Date().getTime();
 				scope._assigned.push(task);
 				socket.emit("task", task);
 			}
-		
 		});
 		
-		socket.on("finished", function($results, $id){
-			
-			// Remove from assigned tasks array
-			
+		// Remove from assigned tasks array
+		socket.on("finished", function($results, $id){	
 			var taskToRemove = -1;
 			for(a in scope._assigned){
-			
-				if(scope._assigned[a].id == $id)
-					taskToRemove = a;
-			
+				if(scope._assigned[a].id == $id) taskToRemove = a;
 			}
-			if(taskToRemove > -1)
-				scope._assigned.splice(taskToRemove, 1);
+			if(taskToRemove > -1) scope._assigned.splice(taskToRemove, 1);
 			
 			// Send returned data to callback function
-			
 			scope._callback($results, $id);
 			
 			// Finish up if no tasks left
-			
 			if(scope._queue.length <= 0 && scope._assigned.length <= 0){
 				scope._finished();
 			}
-		
 		});
-	
 	});
-	
-}
+};
 
 exports.Job.prototype.queue = function($task, $param, $id){
-
 	var task = $task.toString(); // Serialize function
 	this._queue.push({
 		"id": $id,
@@ -90,6 +75,4 @@ exports.Job.prototype.queue = function($task, $param, $id){
 
 }
 
-exports.Job.prototype.assign = function(){
-
-}
+exports.Job.prototype.assign = function(){}

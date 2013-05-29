@@ -1,5 +1,4 @@
 var Massive = function(){
-	
 	this.tasks = [];
 	this.busy = false;
 	this.paused = true;
@@ -7,34 +6,27 @@ var Massive = function(){
 }
 
 Massive.prototype.connect = function($host, $port){
-
 	var scope = this;
 
 	this.socket = io.connect("ws://" + $host + ":" + $port);
 	
-	this.socket.on("connect", function(connection){
-	});
+	this.socket.on("connect", function(connection){});
 	
-	this.socket.on("dependencies", function($dependencies){
-	
+	this.socket.on("dependencies", function($dependencies){	
 		this.dependenciesToLoad = $dependencies.length;
 
 		for(d in $dependencies){
-			
 			var scope = this;
 			
 			var script = document.createElement("script");
 			script.type = "text/javascript";
 			script.src = $dependencies[d];
-			script.onload = function(){
-				
+			script.onload = function(){	
 				scope.dependenciesToLoad --;
-				if(scope.dependenciesToLoad <= 0)
-					scope.socket.emit("ready");
-				
+				if(scope.dependenciesToLoad <= 0) scope.socket.emit("ready");
 			}
-			document.body.appendChild(script);
-		
+			
+			document.body.appendChild(script);		
 		}
 	
 	});
@@ -50,9 +42,7 @@ Massive.prototype.connect = function($host, $port){
 			if(!scope.paused && !scope.busy){
 				scope.busy = true;
 				var task = scope.tasks.pop();
-				console.log("Task:");
-				console.log(task);
-				eval("code = " + task.task)
+				eval("code = " + task.task);
 				var result = code(task.param);
 				scope.socket.emit("finished", result, task.id);
 				scope.busy = false;
